@@ -1,0 +1,186 @@
+
+import arcade
+from random import randint
+import time
+import math
+
+SCREEN_WIDTH = 257
+SCREEN_HEIGHT = 257
+
+class Food():
+    def __init__(self):
+        self.position_x = 139 
+        self.position_y = 139 
+      
+    def update(self):
+        #elke keer dat hij update komt het food op een andere plek
+        self.position_x = (randint(1, 14)*17) + 10
+        self.position_y = (randint(1, 14)*17) + 10
+
+    def draw(self):
+        arcade.draw_rectangle_filled(self.position_x, self.position_y, 14, 14, arcade.color.WHITE_SMOKE)
+
+class Snake():
+    def __init__(self):
+        #direction om te kunnen bepalen waar hij naartoe gaat. 0 is naar boven, 1 is naar rechts, enz...
+        self.direction = 0
+        self.vertical = 0 
+        self.horizontal = 0
+
+        self.position_x = 139 
+        self.position_y = 139 
+
+
+      
+    def update(self):
+        #deze heb ik uitgezet zodat hij niet uitzichzelf beweegt en de snelhijd waarmee hij beweegt dus makkelijker te bepalen is
+        pass    
+    def movement(self): 
+
+        #beweging per direction
+        if self.direction == 0: 
+            self.vertical += 17
+        if self.direction == 1: 
+            self.horizontal += 17
+        if self.direction == 2: 
+            self.vertical -= 17 
+        if self.direction == 3: 
+            self.horizontal -= 17
+        self.position_x = 10 + self.horizontal
+        self.position_y = 10 + self.vertical
+
+
+    def draw(self):
+
+        arcade.draw_rectangle_filled(self.position_x, self.position_y, 14, 14 , arcade.color.ORANGE_RED)
+
+
+         
+
+class MyGame(arcade.Window):
+    """
+    Main application class.
+    """
+
+    def __init__(self, width, height):
+        """
+        Set up the application.
+        """
+
+        super().__init__(width, height)
+
+        arcade.set_background_color(arcade.color.BLACK)
+        self.snake_list = [] 
+        self.snake_list.append(Snake())
+        
+        self.food_list = [] 
+        self.food_list.append(Food())
+
+        self.food_move_timer = 0
+        self.food_move_interval = 400
+
+        self.counter = 19
+        
+        self.speedmod = 0
+        self.speedtime = 2
+        self.speedint = 4096
+        
+
+    def on_draw(self):
+
+        arcade.start_render()
+
+        #speelveld
+        b = 4
+        while b <= 255:
+            a = 4
+            while a <= 255 :
+                arcade.draw_rectangle_filled(a + 6, b+ 6, 14, 14, arcade.color.GREEN)
+                a += 17
+            b += 17
+        
+        #om snake te tekenen en om te winnen
+        for snake in self.snake_list:
+            snake.draw()
+            if self.counter == 25: 
+                arcade.draw_text("You win!!!", 59, 169, arcade.color.WHITE, 30)
+
+        #om food te tekenen en de counter als string te kunnen laten zien
+        for food in self.food_list:
+            food.draw()
+            arcade.draw_text("%(counter)s" %{"counter":self.counter}, 1, 1, arcade.color.WHITE, 30)
+   
+    def update(self, delta_time):
+        snake = Snake()
+        #als snake de food aan raakt dan is collision 20
+        for snake in self.snake_list:
+            for food in self.food_list:
+                #collision word automatisch gereset wanneer mygame zich update
+                collision = 0
+                if snake.position_x == food.position_x and snake.position_y == food.position_y:
+                    collision = 20
+        #food_move_timer loop op tot food_move_timer == food_move_interval en dan update food zodat het op een andere random plek word geherplaatst
+        self.food_move_timer += 2
+        #als collision 20 is beweegt food ook
+        if self.food_move_timer == self.food_move_interval or collision == 20:
+            for food in self.food_list:
+                food.update()
+            self.food_move_timer = 0
+
+        #sluit de game af als je de randen raakt
+        if snake.position_x <= 0 or snake.position_x >= 257 or snake.position_y <= 0 or snake.position_y >= 257: 
+            arcade.close_window()
+
+        # hier word de snelheid van de snake bepaald. bijv. als counter < dan 5 word speedmod elke update groter waardoor speedtime een grotere macht krijgt
+        if self.counter < 5: 
+            self.speedmod += 1
+
+        elif self.counter < 10: 
+            self.speedmod += 2
+            self.food_move_interval = 400
+
+        elif self.counter < 20: 
+            self.speedmod += 3
+            self.food_move_interval = 350
+
+        elif self.counter < 35: 
+            self.speedmod += 4
+            self.food_move_interval = 200
+
+        #om te zorgen dat speedmod niet per ongelijk over 12 heen schiet en het hele movement systeem er uit ligt
+        if self.speedmod > 12: 
+            self.speedmod = 0
+
+        self.speedtime = math.pow(2,self.speedmod)
+
+        #als speedtime = speedint (2^12) dan voert hij snake.movement uit en reset hij speedmod en snaketime
+        if self.speedtime == self.speedint: 
+            self.speedmod = 0
+            for snake in self.snake_list: 
+                snake.movement()
+            self.snaketime = 0
+
+        #elke keer dat je food pakt gaat de counter met 1 omhoog
+        if collision == 20: 
+            self.counter += 1
+    def on_key_press(self, key, modifiers): 
+        #om direction aan te passen
+        for snake in self.snake_list:
+            if key == arcade.key.UP: 
+                snake.direction = 0
+            if key == arcade.key.RIGHT:
+                snake.direction = 1
+            if key == arcade.key.DOWN: 
+                snake.direction = 2 
+            if key == arcade.key.LEFT: 
+                snake.direction = 3 
+
+def main():
+
+    MyGame(SCREEN_WIDTH, SCREEN_HEIGHT)
+    arcade.run()
+
+
+if __name__ == "__main__":
+    main()
+
